@@ -1,5 +1,15 @@
+<*
+	Run this in a c3 project folder to generate documentation.
+	c3docgen will search every .c3 file and extract all the modules,
+	functions and macros and copy them to an .md file and store it in the
+	/doc folder of the project if one exists, root folder otherwise.
+
+	Options:
+		c3docgen mono	creates a single file for all the modules encountered.
+*>
 module c3docgen;
 import buffer;
+import std::os;
 import std::io;
 import std::io::path;
 import std::collections::map;
@@ -8,7 +18,14 @@ Map(<String, Buffer>) buflist;
 
 fn String Path.extract_dirname(self)
 {
-	String dir_path = self.dirname();
+	String dir_path;
+	if (path::is_dir(self))
+	{
+		dir_path = self.str_view();
+	} else
+	{
+		dir_path = self.dirname();
+	}
 	usz! dir_start = dir_path.rindex_of_char(path::PREFERRED_SEPARATOR);
 	if (try dir_start) dir_path = dir_path[dir_start+1:dir_path.len-dir_start-1];
 	return dir_path;
@@ -16,7 +33,6 @@ fn String Path.extract_dirname(self)
 
 fn bool! walker(Path p, bool is_dir, void*)
 {
-	String dir_name = p.extract_dirname();
 	if (!is_dir)
 	{
 		if (p.has_extension("c3"))
@@ -154,29 +170,38 @@ fn bool! walker(Path p, bool is_dir, void*)
 				}
 			}
 		}
-	} else
-	{
-		// for debug
-		//io::printfn("Processing directory :%s", dir_name);
 	}
 	return false;
 }
 
 fn int main(String[] args)
 {
-
-	// a doc gen test program
+	bool mono;
+	if (args.len == 2)
+	{	
+		mono = args[1] == "mono"? true : false;
+	}
 
 	Path! path = path::temp_cwd();
 	io::printfn("Working on project folder :%s", path.path_string)!!;
 	(void)path.walk(&walker, null);
 
-	// save the files to /doc folder
+	// save the files to /doc folder if one exists, current folder otherwise.
+	Buffer monobuf;
+	String dir_name = path.extract_dirname()!!;
+	monobuf.appendf ("# %s\n", dir_name);
+	
 	DString work = dstring::temp_new();
 	work.append(path.path_string)!!;
 	work.append(path::PREFERRED_SEPARATOR);
 	work.append("docs");
-	work.append(path::PREFERRED_SEPARATOR);
+	if (os::native_file_or_dir_exists(work.str_view()))
+	{
+		work.append(path::PREFERRED_SEPARATOR);
+	} else
+	{
+		work.chop (work.len()-4);
+	}
 	String doc_folder = work.tcopy_str();
 	buflist.@each(;String key, Buffer value)
 	{
@@ -185,19 +210,36 @@ fn int main(String[] args)
 		// the modules in one file. in such case, we want to keep the full module name for all the modules.
 		String fix_key = key;
 		fix_key = fix_key.trim();
-		fix_key = fix_key[7:fix_key.len-7];
-		usz! colon_index = fix_key.rindex_of_char(':');
-		if (try colon_index)
+		if (mono) {
+			monobuf.append ("\n");
+			monobuf.append (value);
+			monobuf.append ("\n");
+		} else
 		{
-			fix_key = fix_key[colon_index+1:fix_key.len-colon_index-1];
-		}
+			fix_key = fix_key[7:fix_key.len-7];
+			usz! colon_index = fix_key.rindex_of_char(':');
+			if (try colon_index)
+			{
+				fix_key = fix_key[colon_index+1:fix_key.len-colon_index-1];
+			}
 
-		work.clear();
-		work.append (fix_key);
-		work.insert_at (0, doc_folder);
-		work.append (".md");
-		io::printfn("saving as :%s", work.str_view());
-		value.save_as (work.str_view())!!;
+			work.clear();
+			work.append (fix_key);
+			work.insert_at (0, doc_folder);
+			work.append (".md");
+			io::printfn("saving as :%s", work.str_view());
+			value.save_as (work.str_view())!!;
+		}
 	};
+
+	if (mono)
+	{
+		work.clear();
+		work.append (doc_folder);
+		work.append (dir_name);
+		work.append (".md");
+		io::printfn("saving as monofile:%s", work.str_view());
+		monobuf.save_as (work.str_view())!!;
+	}
 	return 0;
 }
