@@ -26,6 +26,7 @@ fault BufferError
 	SAVE_FAILED,
 	INDEX_OUT_OF_RANGE,
 	OPERATION_FAILED,
+	NO_WORD,
 	EOF,
 }
 

@@ -22,6 +22,9 @@ fn bool! walker(Path p, bool is_dir, void*)
 		if (p.has_extension("c3"))
 		{
 			io::printfn("Processing file :%s", p.basename());
+
+			// extract the module name, check in buflist map to see if we already
+			// have this object in the map.
 			Buffer cur_buf = buffer::temp_file(p.path_string);
 			while (true)
 			{
@@ -52,62 +55,102 @@ fn bool! walker(Path p, bool is_dir, void*)
 			if (!buflist.has_key(module_name))
 			{
 				cur_module = buffer::new();
-				cur_module.appendf ("# %s\n", module_name);
+				cur_module.appendf ("## %s\n", module_name);
 				Buffer tbuf = buflist.set_value_return( module_name, cur_module );
 				buflist.set(module_name, cur_module);
 			} else
 			{
 				cur_module = buflist.get(module_name)!;
 			}
-			
+			//=============================================================================
+
+
+			// here, cur_module is the doc file we are building for the module being parsed.
+			// cur_buf is the module being parsed.
+			cur_buf.trim();
 			cur_buf.cursor_to_bof();
-			while( try cur_buf.find_next("<*"))
+			Buffer sec;
+			usz start_index;
+			usz! end_index;
+			String! word;
+			String! fn_def;
+
+			while (!cur_buf.is_eof())
 			{
-				// we are only interested in processing '<*' that start at beginning of a line
-				// after the find_next, the cursor will be pointing at the '*'
-				usz cursor_pos = cur_buf.get_cursor();
-				if (--cursor_pos > 0 ) cursor_pos--;
-				if (cursor_pos > 0 && cur_buf.peek_char_at(cursor_pos)! != '\n') continue;
-				usz start_index = cur_buf.cursor_right(1);
-				usz! end_index = cur_buf.find_next("*>");
-				if ( catch result = end_index){
-					io::printn("Error: missing '*>'");
-					break;
-				}
-				end_index --;
-				Buffer sec = cur_buf.new_sub_buffer(start_index, end_index - start_index, allocator::temp());
-
-				// get the function or macro definition after *>
-				cur_buf.brk(); // advance to the first white space
-				cur_buf.span(); // advance to the first non-white space
-				String! fn_def = cur_buf.get_line();
-				if (try fn_def){
-					// if fn_def is module, this is top level doc
-					io::printfn("found def :%s", fn_def);
-					if (fn_def.starts_with("module"))
+				word = cur_buf.get_word();
+				if (catch error = word)
+				{
+					if (error = BufferError.NO_WORD)
 					{
-						usz save_cursor = cur_module.get_cursor();
-						cur_module.cursor_to_bof();
-						usz inx = cur_module.cursor_right_lines(2);
-						cur_module.insert(inx, "\n\n");
-						cur_module.insert_buffer(inx, sec);
-						cur_module.cursor_to(save_cursor);
-
+						cur_buf.cursor_next_line();
+						continue;
 					} else
 					{
-						cur_module.appendf("## %s\n", fn_def);
-						cur_module.append_buffer(sec);
-						cur_module.append("\n\n");
+						// something else, just stop processing this and return.
+						io::printfn("Encountered error :%s", error);
+						return true;
 					}
-
-					// inserting into cur_module potentially resized it and changed the pointer,
-					// set it into the map again to update the pointer.
-					buflist.set (module_name, cur_module);
-
 				} else
 				{
-					io::printn("Error: unable to get function or macro definition");
-					break;
+					// we are interested in word that is
+					// <*, module, fn, macro
+					switch (word)
+					{
+						case "<*":
+							start_index = cur_buf.get_cursor();
+							end_index = cur_buf.find_next("*>");
+							if ( catch result = end_index){
+								io::printn("Error: missing '*>'");
+								return true;
+							}
+							end_index --;
+							cur_buf.sub_buffer(start_index, end_index - start_index, &sec)!;
+							cur_buf.brk(); // advance to the first white space
+							cur_buf.span(); // advance to the first non-white space
+							break;
+
+						case "module":
+							// the module name
+						case "fn":
+							// fn declaration that does not have docs, but add it anyway.
+						case "macro":
+							// macro declaration that does not have docs, but add it anyway.
+							cur_buf.cursor_to_bol();
+							fn_def = cur_buf.get_line();
+
+							if (try fn_def){
+								io::printfn("found def :%s", fn_def);
+								if (fn_def.starts_with("module"))
+								{
+									if (sec.len() > 0)
+									{
+										usz save_cursor = cur_module.get_cursor();
+										cur_module.cursor_to_bof();
+										usz inx = cur_module.cursor_right_lines(2);
+										cur_module.insert(inx, "\n\n");
+										cur_module.insert_buffer(inx, sec);
+										cur_module.cursor_to(save_cursor);
+									}
+								} else
+								{
+									cur_module.appendf("### %s\n", fn_def);
+									cur_module.append_buffer(sec);
+									cur_module.append("\n\n");
+								}
+
+								// inserting into cur_module potentially resized it and changed the pointer,
+								// set it into the map again to update the pointer.
+								buflist.set (module_name, cur_module);
+								sec.clear();
+
+							}
+
+							break;
+						default:
+							// something else, advance to the next line and continue.
+							cur_buf.cursor_next_line();
+							continue;
+					}
 				}
 			}
 		}

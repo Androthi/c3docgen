@@ -85,6 +85,15 @@ fn usz Buffer.cursor_right_lines(&self, usz num_lines)
 	return data.cursor;
 }
 
+ fn usz Buffer.cursor_next_line(&self) => self.cursor_right_lines(1) @inline;
+
+//+ TODO
+//fn usz Buffer.cursor_left_lines(&self, usz num_lines)
+//{}
+
+//+ TODO
+ //fn usz Buffer.cursor_prev_line(&self) => self.cursor_left_lines(1) @inline;
+
 <*
  move cursor to beginning of current line
  @return `index of cursor`
@@ -185,7 +194,7 @@ fn usz Buffer.r_brk(&self, Cset set = WHITE_SPACES)
 {
 	if (!*self) return 0;
 	BufferData* data = self.data();
-	while (data.cursor > data.len)
+	while (data.cursor > 0)
 	{
 		if (char_in_cset(data.chars[data.cursor], set)) break;
 		data.cursor--;
@@ -216,6 +225,19 @@ fn char! Buffer.peek_char_at(&self, usz index)
 	BufferData* data = self.data();
 	if ( index > data.len) return BufferError.INDEX_OUT_OF_RANGE?;
 	return data.chars[index];
+}
+
+fn String! Buffer.get_word(&self, Cset set = WHITE_SPACES)
+{
+	if (!*self) return BufferError.NULL_BUFFER?;
+	BufferData* data = self.data();
+	if (data.cursor == data.len) return BufferError.EOF?;
+	char under = self.peek_char_at(data.cursor)!;
+	if (char_in_cset(under, set)) return BufferError.NO_WORD?;
+	usz start = self.r_brk(set);
+	if (start != 0) start = ++data.cursor; // make sure start points to the start of characters in the word.
+	usz end = self.brk(set);
+	return (String) data.chars[start:end-start];
 }
 
 <*
