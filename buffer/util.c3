@@ -4,6 +4,9 @@ import std::io;
 //+ Buffer editing ============================================================
 
 <*
+	delete a number of bytes from the buffer
+	@param start `location to start deleting`
+	@param len `the number of bytes to delete, debault is 1`
 	@require start < self.len()
 	@require start + len <= self.len()
 *>
@@ -25,6 +28,11 @@ fn void Buffer.delete(&self, usz start, usz len = 1)
 	data.len = new_len;
 }
 
+<*
+	string replacement in buffer
+	@param needle `the string to search for`
+	@param replacement `the string used to replace, if needle is found`
+*>
 fn void Buffer.replace_string(&self, String needle, String replacement)
 {
 	if (!*self)
@@ -41,6 +49,12 @@ fn void Buffer.replace_string(&self, String needle, String replacement)
 	}
 }
 
+<*
+	checks to see if a character is in a character set
+	@param c `the character to check for`
+	@param set `the Cset in which to search for this character`
+	@return `true if found, false if not found`
+*>
 macro bool char_in_cset(char c, Cset set)
 {
 	foreach (ch : set) if (ch == c) return true;
@@ -48,7 +62,7 @@ macro bool char_in_cset(char c, Cset set)
 }
 
 <*
-	remove white spaces from start and end  buffer
+	remove white spaces from start and end buffer
 *>
 fn void Buffer.trim(&self, Cset set = WHITE_SPACES)
 {
@@ -65,6 +79,9 @@ fn void Buffer.trim(&self, Cset set = WHITE_SPACES)
 }
 
 <*
+	like delete, but uses a range of start, end rather than start, len.
+	@param start `location to start deleting`
+	@param end `location to end deleting`
 	@require start < self.len()
 	@require end < self.len()
 	@require end >= start "End must be same or equal to the start"
@@ -87,6 +104,13 @@ fn void Buffer.replace_chars(self, char ch, char replacement)
 	}
 }
 
+<*
+	extracts a sub buffer from the buffer, copies it to dest buffer.
+	@param start_index `location to start extraction`
+	@param len `the number of bytes to copy`
+	@param dest `a pointer to the dest buffer to copy data`
+	@return! BufferError.NULL_BUFFER, BufferError.OPERATION_FAILED, BufferError.INDEX_OUT_OF_RANGE
+*>
 fn void! Buffer.sub_buffer(&self, usz start_index, usz len, Buffer* dest)
 {
 	if (!*self) return BufferError.NULL_BUFFER?;
@@ -98,6 +122,13 @@ fn void! Buffer.sub_buffer(&self, usz start_index, usz len, Buffer* dest)
 	(void)dest.write(range);
 }
 
+<*
+	like sub_buffer, but creates a new buffer
+	@param start_index `location to start extraction`
+	@param len `the number of bytes to copy`
+	@param allocator `allocator to use, default allocator::heap()`
+	@return `a new allocated Buffer`
+*>
 fn Buffer Buffer.new_sub_buffer(self, usz start_index, usz len, Allocator allocator = allocator::heap())
 {
 	// we're always returning an allocaterd DString, so no need for error, it will panic if malloc fails
@@ -106,6 +137,13 @@ fn Buffer Buffer.new_sub_buffer(self, usz start_index, usz len, Allocator alloca
 	return buf;
 }
 
+<*
+	extracts a sub string from the buffer, copies it to dest DString.
+	@param start_index `location to start extraction`
+	@param len `the number of bytes to copy`
+	@param dest `a pointer to the dest dstring to copy data`
+	@return! BufferError.NULL_BUFFER, BufferError.OPERATION_FAILED, BufferError.INDEX_OUT_OF_RANGE
+*>
 fn void! Buffer.sub_string(&self, usz start_index, usz len, DString* dest)
 {
 	if (!*self) return BufferError.NULL_BUFFER?;
@@ -117,6 +155,13 @@ fn void! Buffer.sub_string(&self, usz start_index, usz len, DString* dest)
 	(void)dest.write(range);
 }
 
+<*
+	like sub_string, but creates a new dstring
+	@param start_index `location to start extraction`
+	@param len `the number of bytes to copy`
+	@param allocator `allocator to use, default allocator::heap()`
+	@return `a new allocated dstring`
+*>
 fn DString Buffer.new_sub_string(self, usz start_index, usz len, Allocator allocator = allocator::heap())
 {
 	// we're always returning an allocaterd DString, so no need for error, it will panic if malloc fails
@@ -127,6 +172,11 @@ fn DString Buffer.new_sub_string(self, usz start_index, usz len, Allocator alloc
 
 //+ Copying ===================================================================
 
+<*
+	dublicates a buffer. a null is returned if the self buffer is null.
+	@param allocator `allocator to use. will use allocator::heap is none is passed.`
+	@return `a new buffer object.`
+*>
 fn Buffer Buffer.copy(self, Allocator allocator = null)
 {
 	if (!self)
@@ -141,8 +191,17 @@ fn Buffer Buffer.copy(self, Allocator allocator = null)
 	return new_buffer;
 }
 
+<*
+	dublicates a buffer. will use the temp allocator.
+	@return `a new buffer object.`
+*>
 fn Buffer Buffer.temp_copy(&self) => self.copy(allocator::temp());
 
+<*
+	will create a ZString object from the contents of the buffer
+	@param allocator `default allocator::heap()`
+	@return `a ZString object`
+*>
 fn ZString Buffer.copy_zstr(self, Allocator allocator = allocator::heap())
 {
 	usz str_len = self.len();
@@ -157,25 +216,48 @@ fn ZString Buffer.copy_zstr(self, Allocator allocator = allocator::heap())
 	return (ZString)zstr;
 }
 
+<*
+	will create a String object from the contents of the buffer
+	@param allocator `default allocator::heap()`
+	@return `a String object`
+*>
 fn String Buffer.copy_str(self, Allocator allocator = allocator::heap())
 {
 	return (String)self.copy_zstr(allocator)[:self.len()];
 }
 
+<*
+	same as copy_str, but will use the temp allocator.
+	@return `a String object`
+*>
 fn String Buffer.temp_copy_str(self) => self.copy_str(allocator::temp()) @inline;
 
+<*
+	will create an array of Char32[] from the contents of the buffer
+	@param allocator `default is allocator::heap()`
+*>
 fn Char32[] Buffer.copy_utf32(&self, Allocator allocator = allocator::heap())
 {
 	return self.str_view().to_utf32(allocator) @inline!!;
 }
 
 // Comparing/Branching ========================================================
-
+<*
+	compares to buffers for equality, case insensitive.
+	@param other_buffer `the buffer to compare`
+	@return `true if equal`
+*>
 macro bool Buffer.iequals(self, Buffer other_buffer)
 {
 	self.equals(other_buffer, false);
 }
 
+<*
+	compares two buffers for equality, default case sensitive
+	@param other_buffer `the buffer to compare`
+	@param case_sensitive `true is compare is case sensitive`
+	@return `true if equal`
+*>
 fn bool Buffer.equals(self, Buffer other_buffer, bool case_sensitive = true)
 {
 	BufferData *buf1 = self.data();
@@ -198,6 +280,11 @@ fn bool Buffer.equals(self, Buffer other_buffer, bool case_sensitive = true)
 	return true;
 }
 
+<*
+	compares two buffers
+	@param other_buffer `the buffer to compare`
+	@return `true if buffer is less than other_buffer`
+*>
 fn bool Buffer.less(self, Buffer other_buffer)
 {
 	BufferData* buf1 = self.data();

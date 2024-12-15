@@ -1,5 +1,13 @@
 module buffer;
 
+<*
+	uses internal cursor to tokenize the contents of the buffer
+	returns a string slice for each token found.
+	returns EOF error when there are no more tokens.
+	@param set `a Cset of delimiters to use for isolating tokens.`
+	@return! BufferError.NULL_BUFFER, BufferError.EOF
+	@return `a string of found token`
+*>
 fn String! Buffer.next_token(&self, Cset set = DELIMITERS)
 {
 	if (!*self) return BufferError.NULL_BUFFER?;
@@ -14,6 +22,14 @@ fn String! Buffer.next_token(&self, Cset set = DELIMITERS)
 	return (String)data.chars[token_start:token_end-token_start];
 }
 
+<*
+	uses internal cursor to peek at the current token. does not advance the cursor
+	returns a string slice for token found.
+	returns EOF error when there are no more tokens.
+	@param set `a Cset of delimiters to use for isolating tokens.`
+	@return! BufferError.NULL_BUFFER, BufferError.EOF
+	@return `a string of found token`
+*>
 fn String! Buffer.peek_token(&self, Cset set = DELIMITERS)
 {
 	if (!*self) return BufferError.NULL_BUFFER?;

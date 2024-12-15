@@ -5,16 +5,22 @@
 	/doc folder of the project if one exists, root folder otherwise.
 
 	Options:
-		c3docgen mono	creates a single file for all the modules encountered.
+		c3docgen [<opitons>]
+			mono	creates a single file for all the modules encountered.
+			verbose	output information on files and definitions found.
+
 *>
 module c3docgen;
 import buffer;
-import std::os;
 import std::io;
 import std::io::path;
 import std::collections::map;
 
 Map(<String, Buffer>) buflist;
+
+bool mono = false;
+bool verbose = false;
+
 
 fn String Path.extract_dirname(self)
 {
@@ -37,62 +43,20 @@ fn bool! walker(Path p, bool is_dir, void*)
 	{
 		if (p.has_extension("c3"))
 		{
-			io::printfn("Processing file :%s", p.basename());
+			if (verbose) io::printfn("Processing file :%s", p.basename());
 
-			// extract the module name, check in buflist map to see if we already
-			// have this object in the map.
 			Buffer cur_buf = buffer::temp_file(p.path_string);
-			// while (true)
-			// {
-			// 	// we need to find module definition, make sure it is flush with line, so we know it's the correct one
-			// 	usz! index = cur_buf.find_next("module");
-			// 	if ( catch error = index)
-			// 	{
-			// 		io::printn("Error, .c3 file missing module identifier");
-			// 		return true;
-			// 	}
-			// 	usz cursor_pos = cur_buf.get_cursor();
-			// 	if (--cursor_pos > 0 ) cursor_pos--;
-			// 	if (cursor_pos > 0 && cur_buf.peek_char_at(cursor_pos)! != '\n') continue;
-			// 	break;
-			// }
-			// cur_buf.brk();
-			// cur_buf.span();
-			//String! module_name = cur_buf.get_line();
-			String! module_name;
-			// if (catch error = module_name)
-			// {
-			// 	io::printn("Error, couldn't get the line from module");
-			// 	return true;
-			// }
-			// module_name = module_name.strip_end(";");
-
-			// see if it's already in list
 			Buffer cur_module;
-			// if (!buflist.has_key(module_name))
-			// {
-			// 	cur_module = buffer::new();
-			// 	cur_module.appendf ("## %s\n", module_name);
-			// 	Buffer tbuf = buflist.set_value_return( module_name, cur_module );
-			// 	buflist.set(module_name, cur_module);
-			// } else
-			// {
-			// 	cur_module = buflist.get(module_name)!;
-			// }
-			//=============================================================================
-
-
-			// here, cur_module is the doc file we are building for the module being parsed.
-			// cur_buf is the module being parsed.
-			cur_buf.trim();
-			cur_buf.cursor_to_bof();
 			Buffer sec;
+			String! module_name;
 			usz start_index;
 			usz! end_index;
 			String! word;
 			String! fn_def;
-
 			bool found_module = false;
+
+			cur_buf.trim();
+			cur_buf.cursor_to_bof();
 
 			while (!cur_buf.is_eof())
 			{
@@ -127,6 +91,8 @@ fn bool! walker(Path p, bool is_dir, void*)
 							cur_buf.sub_buffer(start_index, end_index - start_index, &sec)!;
 							cur_buf.brk(); // advance to the first white space
 							cur_buf.span(); // advance to the first non-white space
+
+							// put the sections in code sections for better formatting in markdown viewers.
 							sec.insert (0, "\n```");
 							sec.append ("\n```");
 							break;
@@ -136,7 +102,7 @@ fn bool! walker(Path p, bool is_dir, void*)
 							module_name = cur_buf.get_line();
 							if (try module_name)
 							{
-								io::printfn("found def :%s", module_name);
+								if (verbose) io::printfn("found def :%s", module_name);
 								if (try module_name.starts_with("module"))
 								{
 									module_name = module_name.strip_end(";");
@@ -169,7 +135,7 @@ fn bool! walker(Path p, bool is_dir, void*)
 							fn_def = cur_buf.get_line();
 
 							if (try fn_def){
-								io::printfn("found def :%s", fn_def);
+								if (verbose) io::printfn("found def :%s", fn_def);
 								if (!found_module)
 								{
 									io::printn("Error: could not find module definition in file");
@@ -182,8 +148,6 @@ fn bool! walker(Path p, bool is_dir, void*)
 								// inserting into cur_module potentially resized it and changed the pointer,
 								// set it into the map again to update the pointer.
 								(void)buflist.set (module_name, cur_module);
-								//sec.clear();
-
 							}
 
 							break;
@@ -201,14 +165,19 @@ fn bool! walker(Path p, bool is_dir, void*)
 
 fn int main(String[] args)
 {
-	bool mono;
-	if (args.len == 2)
-	{	
-		mono = args[1] == "mono"? true : false;
+	foreach (i, value: args)
+	{
+		switch (value)
+		{
+			case "mono":
+				mono = true;
+			case "verbose":
+				verbose = true;
+		}
 	}
 
 	Path! path = path::temp_cwd();
-	io::printfn("Working on project folder :%s", path.path_string)!!;
+	if (verbose) io::printfn("Working on project folder :%s", path.path_string)!!;
 	(void)path.walk(&walker, null);
 
 	// save the files to /doc folder if one exists, current folder otherwise.
@@ -231,7 +200,7 @@ fn int main(String[] args)
 	buflist.@each(;String key, Buffer value)
 	{
 		// for multi-files, extract module name
-		//+ TODO for monofiles, extract the current folder name and create a <name>.md file containing all
+		// for monofiles, extract the current folder name and create a <name>.md file containing all
 		// the modules in one file. in such case, we want to keep the full module name for all the modules.
 		String fix_key = key;
 		fix_key = fix_key.trim();
@@ -267,7 +236,7 @@ fn int main(String[] args)
 			work.append (fix_key);
 			work.insert_at (0, doc_folder);
 			work.append (".md");
-			io::printfn("saving as :%s", work.str_view());
+			if (verbose) io::printfn("saving as :%s", work.str_view());
 			value.save_as (work.str_view())!!;
 		}
 	};
@@ -278,7 +247,7 @@ fn int main(String[] args)
 		work.append (doc_folder);
 		work.append (dir_name);
 		work.append (".md");
-		io::printfn("saving as monofile:%s", work.str_view());
+		if (verbose) io::printfn("saving as monofile:%s", work.str_view());
 		monobuf.save_as (work.str_view())!!;
 	}
 	return 0;

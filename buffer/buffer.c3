@@ -193,7 +193,7 @@ fn void Buffer.reserve(&self, usz addition) @private
 // TODO: modify data.len here, need to fix every method that calls this
 // so that data.len isn't adjusted twice.
 <*
-	 private helper metod for creating a len amount of space at index for
+	private helper metod for creating a len amount of space at index for
 	inserting new data.
 *>
 fn void Buffer.adjust_for_insert(&self, usz index, usz len) @private

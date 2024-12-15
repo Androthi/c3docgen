@@ -4,6 +4,10 @@ import std::io;
 
 //+ Data appent/insert methods ================================================
 
+<*
+	general purpose append macro
+	recognizes the types of string, char, dstring, char32, buffer
+*>
 macro void Buffer.append(&self, value)
 {
 	var $Type = $typeof(value);
@@ -30,6 +34,7 @@ macro void Buffer.append(&self, value)
 			$endswitch
 	$endswitch
 }
+
 
 macro void Buffer.append_buffer(&self, Buffer buffer)
 {
@@ -66,6 +71,11 @@ macro usz Buffer.append_utf32(&self, Char32[] chars)
 	return n;
 }
 
+<*
+	appends a formatted string
+	@param format `formatted string in the style of printf`
+	@param args `varargs for formatted string`
+*>
 fn void Buffer.appendf(&self, String format, args...)
 {
 	if (!self.data()) self.new_init(format.len + 20);
@@ -76,6 +86,12 @@ fn void Buffer.appendf(&self, String format, args...)
 	};
 }
 
+<*
+	inserts a formatted string
+	@param index `location in buffer to insert`
+	@param format `the formatted string in the style of printf`
+	@param args `varargs for formatted string`
+*>
 fn void Buffer.insertf(&self, usz index, String format, args...)
 {
 	if (!self.data()) self.new_init(format.len + 20);
@@ -86,6 +102,11 @@ fn void Buffer.insertf(&self, usz index, String format, args...)
 	};
 }
 
+<*
+	repeatedly appends a sincgle character source.
+	@param c `the character to append`
+	@param times `the number of times to append c`
+*>
 fn void Buffer.append_repeat(&self, char c, usz times)
 {
 	if (times == 0) return;
@@ -97,18 +118,31 @@ fn void Buffer.append_repeat(&self, char c, usz times)
 	}
 }
 
+<*
+	For OutStream interface
+	appends a character slice into the buffer
+	@param buffer `the slice to write into the buffer`
+	@return `the length of characters written`
+*>
 fn usz! Buffer.write(&self, char[] buffer) @dynamic
 {
 	self.append_chars((String)buffer);
 	return buffer.len;
 }
 
+<*
+	appends a singel byte into the buffer
+	@param c `the character to append`
+*>
 fn void! Buffer.write_byte(&self, char c) @dynamic
 {
 	self.append_char(c);
 }
 
 <*
+	overwrites a character at index. does not change the size of buffer
+	@param index `index of character to overwrite`
+	@param c `the new character to insert at index`
 	@require index < self.len()
 *>
 fn void Buffer.set(self, usz index, char c)
@@ -116,6 +150,11 @@ fn void Buffer.set(self, usz index, char c)
 	self.data().chars[index] = c;
 }
 
+<*
+	InStream reader for buffer. Data is appended to buffer
+	@param reader `the InStream reader source`
+	@return `number of bytes read from reader`
+*>
 fn usz! Buffer.read_from_stream(&self, InStream reader)
 {
 	if (&reader.available)
@@ -146,6 +185,12 @@ fn usz! Buffer.read_from_stream(&self, InStream reader)
 	}
 }
 
+<*
+	general purpose insert macro
+	recognizes the types string, char, dstring, buffer
+	@param index `location in buffer to insert data`
+	@param value `the value to insert at index`
+*>
 macro void Buffer.insert(&self, usz index, value)
 {
 	var $Type = $typeof(value);
@@ -173,6 +218,11 @@ macro void Buffer.insert(&self, usz index, value)
 	$endswitch
 }
 
+<*
+	inserts a buffer object into the buffer.
+	@param index `location in buffer to insert dest buffer`
+	@param buffer `the dest buffer to insert at index`
+*>
 fn void Buffer.insert_buffer(&self, usz index, Buffer buffer)
 {
 	if (!buffer) return;
