@@ -42,42 +42,43 @@ fn bool! walker(Path p, bool is_dir, void*)
 			// extract the module name, check in buflist map to see if we already
 			// have this object in the map.
 			Buffer cur_buf = buffer::temp_file(p.path_string);
-			while (true)
-			{
-				// we need to find module definition, make sure it is flush with line, so we know it's the correct one
-				usz! index = cur_buf.find_next("module");
-				if ( catch error = index)
-				{
-					io::printn("Error, .c3 file missing module identifier");
-					return true;
-				}
-				usz cursor_pos = cur_buf.get_cursor();
-				if (--cursor_pos > 0 ) cursor_pos--;
-				if (cursor_pos > 0 && cur_buf.peek_char_at(cursor_pos)! != '\n') continue;
-				break;
-			}
-			cur_buf.brk();
-			cur_buf.span();
-			String! module_name = cur_buf.get_line();
-			if (catch error = module_name)
-			{
-				io::printn("Error, couldn't get the line from module");
-				return true;
-			}
-			module_name = module_name.strip_end(";");
+			// while (true)
+			// {
+			// 	// we need to find module definition, make sure it is flush with line, so we know it's the correct one
+			// 	usz! index = cur_buf.find_next("module");
+			// 	if ( catch error = index)
+			// 	{
+			// 		io::printn("Error, .c3 file missing module identifier");
+			// 		return true;
+			// 	}
+			// 	usz cursor_pos = cur_buf.get_cursor();
+			// 	if (--cursor_pos > 0 ) cursor_pos--;
+			// 	if (cursor_pos > 0 && cur_buf.peek_char_at(cursor_pos)! != '\n') continue;
+			// 	break;
+			// }
+			// cur_buf.brk();
+			// cur_buf.span();
+			//String! module_name = cur_buf.get_line();
+			String! module_name;
+			// if (catch error = module_name)
+			// {
+			// 	io::printn("Error, couldn't get the line from module");
+			// 	return true;
+			// }
+			// module_name = module_name.strip_end(";");
 
 			// see if it's already in list
 			Buffer cur_module;
-			if (!buflist.has_key(module_name))
-			{
-				cur_module = buffer::new();
-				cur_module.appendf ("## %s\n", module_name);
-				Buffer tbuf = buflist.set_value_return( module_name, cur_module );
-				buflist.set(module_name, cur_module);
-			} else
-			{
-				cur_module = buflist.get(module_name)!;
-			}
+			// if (!buflist.has_key(module_name))
+			// {
+			// 	cur_module = buffer::new();
+			// 	cur_module.appendf ("## %s\n", module_name);
+			// 	Buffer tbuf = buflist.set_value_return( module_name, cur_module );
+			// 	buflist.set(module_name, cur_module);
+			// } else
+			// {
+			// 	cur_module = buflist.get(module_name)!;
+			// }
 			//=============================================================================
 
 
@@ -90,6 +91,8 @@ fn bool! walker(Path p, bool is_dir, void*)
 			usz! end_index;
 			String! word;
 			String! fn_def;
+
+			bool found_module = false;
 
 			while (!cur_buf.is_eof())
 			{
@@ -126,16 +129,24 @@ fn bool! walker(Path p, bool is_dir, void*)
 							break;
 
 						case "module":
-						case "fn":
-						case "macro":
-						case "extern":
 							cur_buf.cursor_to_bol();
-							fn_def = cur_buf.get_line();
-
-							if (try fn_def){
-								io::printfn("found def :%s", fn_def);
-								if (fn_def.starts_with("module"))
+							module_name = cur_buf.get_line();
+							if (try module_name)
+							{
+								io::printfn("found def :%s", module_name);
+								if (try module_name.starts_with("module"))
 								{
+									module_name = module_name.strip_end(";");
+									if (!buflist.has_key(module_name))
+									{
+										cur_module = buffer::new();
+										cur_module.appendf ("## %s\n\n", module_name);
+										buflist.set (module_name, cur_module);
+									} else
+									{
+										cur_module = buflist.get(module_name)!;
+									}
+									found_module = true;
 									if (sec.len() > 0)
 									{
 										usz save_cursor = cur_module.get_cursor();
@@ -145,16 +156,43 @@ fn bool! walker(Path p, bool is_dir, void*)
 										cur_module.insert_buffer(inx, sec);
 										cur_module.cursor_to(save_cursor);
 									}
-								} else
-								{
+								}
+							}
+
+						case "fn":
+						case "macro":
+						case "extern":
+							cur_buf.cursor_to_bol();
+							fn_def = cur_buf.get_line();
+
+							if (try fn_def){
+								io::printfn("found def :%s", fn_def);
+								// if (fn_def.starts_with("module"))
+								// {
+								// 	if (sec.len() > 0)
+								// 	{
+								// 		usz save_cursor = cur_module.get_cursor();
+								// 		cur_module.cursor_to_bof();
+								// 		usz inx = cur_module.cursor_right_lines(2);
+								// 		cur_module.insert(inx, "\n\n");
+								// 		cur_module.insert_buffer(inx, sec);
+								// 		cur_module.cursor_to(save_cursor);
+								// 	}
+								// } else
+								// {
+									if (!found_module)
+									{
+										io::printn("Error: could not find module definition in file");
+										return true;
+									}
 									cur_module.appendf("### %s\n", fn_def);
 									cur_module.append_buffer(sec);
 									cur_module.append("\n\n");
-								}
+								// }
 
 								// inserting into cur_module potentially resized it and changed the pointer,
 								// set it into the map again to update the pointer.
-								buflist.set (module_name, cur_module);
+								(void)buflist.set (module_name, cur_module);
 								sec.clear();
 
 							}
@@ -232,7 +270,7 @@ fn int main(String[] args)
 			index = fix_key.rindex_of_char('('); // snip any possible (<type>) from module name
 			if (try index)
 			{
-				fix_key = fix_key[:index-1];
+				fix_key = fix_key[:index];
 			}
 			
 
