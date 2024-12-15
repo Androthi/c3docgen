@@ -1,5 +1,7 @@
 # c3docgen
 
+using c3c v0.6.5
+
 program to generate documents from c3 source files.
 
 will search for all .c3 files and create documents from sources.
@@ -15,7 +17,8 @@ ensure all contidional modules and modules that have the same name will be scann
 documentation.
 
 documentation consists of using <* *> pairs. the opening pair must be aligned with the
-beginning of a line, or they are ignored and treated like normal text.
+beginning of a line, or they are ignored and treated like normal text. the closing pair
+should likewise be on a new line for consistency.
 
 functions and macros that are not documented will still be added to the output document.
 
@@ -23,11 +26,43 @@ to add documents to a top level file (a module), there should be only one per mo
 
 ```
 <*
-	my module
+ 	my module works in mysterious ways.
 *>
 module my_module;
 ```
 
-```the output generated will be an .md file. markdown files ignore new lines that
-appear before the '@' character. use a tab to make sure the new lines are inserted.
+this will generate:
+
+## module my_module
+
 ```
+	my module works in mysterious ways.
+```
+
+the following
+
+```
+<*
+ my_func does some things with with arguments.
+ @param count `the number of things to do`
+ @return! MyFuncError.NULL
+ @return `the number of things done`
+*>
+fn usz! my_func (usz count)
+{
+	...
+	return result;
+}
+```
+
+will generate:
+
+### fn usz! my_func (usz count)
+
+```
+ my_func does some things with with arguments.
+ @param count `the number of things to do`
+ @return! MyFuncError.NULL
+ @return `the number of things done`
+```
+
