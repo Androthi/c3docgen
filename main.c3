@@ -122,10 +122,13 @@ fn bool! walker(Path p, bool is_dir, void*)
 								io::printn("Error: missing '*>'");
 								return true;
 							}
+							sec.clear();
 							end_index --;
 							cur_buf.sub_buffer(start_index, end_index - start_index, &sec)!;
 							cur_buf.brk(); // advance to the first white space
 							cur_buf.span(); // advance to the first non-white space
+							sec.insert (0, "\n```");
+							sec.append ("\n```");
 							break;
 
 						case "module":
@@ -167,33 +170,19 @@ fn bool! walker(Path p, bool is_dir, void*)
 
 							if (try fn_def){
 								io::printfn("found def :%s", fn_def);
-								// if (fn_def.starts_with("module"))
-								// {
-								// 	if (sec.len() > 0)
-								// 	{
-								// 		usz save_cursor = cur_module.get_cursor();
-								// 		cur_module.cursor_to_bof();
-								// 		usz inx = cur_module.cursor_right_lines(2);
-								// 		cur_module.insert(inx, "\n\n");
-								// 		cur_module.insert_buffer(inx, sec);
-								// 		cur_module.cursor_to(save_cursor);
-								// 	}
-								// } else
-								// {
-									if (!found_module)
-									{
-										io::printn("Error: could not find module definition in file");
-										return true;
-									}
-									cur_module.appendf("### %s\n", fn_def);
-									cur_module.append_buffer(sec);
-									cur_module.append("\n\n");
-								// }
-
+								if (!found_module)
+								{
+									io::printn("Error: could not find module definition in file");
+									return true;
+								}
+								cur_module.appendf("### %s\n", fn_def);
+								cur_module.append_buffer(sec);
+								cur_module.append("\n\n");
+								
 								// inserting into cur_module potentially resized it and changed the pointer,
 								// set it into the map again to update the pointer.
 								(void)buflist.set (module_name, cur_module);
-								sec.clear();
+								//sec.clear();
 
 							}
 
