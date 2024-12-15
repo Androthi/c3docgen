@@ -52,7 +52,7 @@ macro void Buffer.append_string(&self, DString str)
 }
 
 <*
- @require c <= 0x10ffff
+	@require c <= 0x10ffff
 *>
 macro usz Buffer.append_char32(&self, Char32 c)
 {
@@ -86,7 +86,6 @@ fn void Buffer.insertf(&self, usz index, String format, args...)
 	};
 }
 
-
 fn void Buffer.append_repeat(&self, char c, usz times)
 {
 	if (times == 0) return;
@@ -97,7 +96,6 @@ fn void Buffer.append_repeat(&self, char c, usz times)
 		data.chars[data.len++] = c;
 	}
 }
-
 
 fn usz! Buffer.write(&self, char[] buffer) @dynamic
 {
@@ -111,13 +109,12 @@ fn void! Buffer.write_byte(&self, char c) @dynamic
 }
 
 <*
- @require index < self.len()
+	@require index < self.len()
 *>
 fn void Buffer.set(self, usz index, char c)
 {
 	self.data().chars[index] = c;
 }
-
 
 fn usz! Buffer.read_from_stream(&self, InStream reader)
 {
@@ -184,7 +181,9 @@ fn void Buffer.insert_buffer(&self, usz index, Buffer buffer)
 }
 
 <*
- @require index <= self.len()
+	@param index `position in buffer to insert`
+	@param s `the string slice to insert into buffer`
+	@require index <= self.len()
 *>
 fn void Buffer.insert_chars(&self, usz index, String s)
 {
@@ -202,7 +201,9 @@ fn void Buffer.insert_chars(&self, usz index, String s)
 }
 
 <*
- @require index <= self.len()
+	@param index `position in buffer to insert`
+	@param str `the dynamic string to insert into buffer`
+	@require index <= self.len()
 *>
 fn void Buffer.insert_string(&self, usz index, DString str)
 {
@@ -211,7 +212,9 @@ fn void Buffer.insert_string(&self, usz index, DString str)
 }
 
 <*
- @require index <= self.len()
+ 	@param index `position in buffer to insert`
+	@param c `the character to insert into buffer`
+	@require index <= self.len()
 *>
 fn void Buffer.insert_char(&self, usz index, char c)
 {
@@ -225,7 +228,9 @@ fn void Buffer.insert_char(&self, usz index, char c)
 
 
 <*
- @require index <= self.len()
+	@param index `position in buffer to insert`
+	@param c `the Char32 to insert into buffer`
+	@require index <= self.len()
 *>
 fn usz Buffer.insert_char32(&self, usz index, Char32 c)
 {
@@ -241,7 +246,9 @@ fn usz Buffer.insert_char32(&self, usz index, Char32 c)
 }
 
 <*
- @require index <= self.len()
+	@param index `position in buffer to insert`
+	@param chars `the Char32[] to insert into buffer`	
+	@require index <= self.len()
 *>
 fn usz Buffer.insert_utf32(&self, usz index, Char32[] chars)
 {

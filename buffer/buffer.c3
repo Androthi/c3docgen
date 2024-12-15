@@ -1,8 +1,8 @@
 <* 
- this is a general purpose prototyping module used for parsing and creating files.
- contains methods for adding and deleting data into the buffer, tokenizing, cursor movements,
- file i/o, varisous search, replace methods.
- Buffer uses dynamic memory, all insertion methods will resize the buffer as needed.
+	this is a general purpose prototyping module used for parsing and creating files.
+	contains methods for adding and deleting data into the buffer, tokenizing, cursor movements,
+	file i/o, varisous search, replace methods.
+	Buffer uses dynamic memory, all insertion methods will resize the buffer as needed.
 *>
 module buffer;
 import std::io;
@@ -62,8 +62,8 @@ fn Buffer Buffer.new_init(&self, usz capacity = DEFAULT_CAPACITY, Allocator allo
 }
 
 <*
- calls new_init with temp allocator.
- @require !self.data() "Buffer already initialized"
+	calls new_init with temp allocator.
+	@require !self.data() "Buffer already initialized"
 *>
 fn Buffer Buffer.temp_init(&self, usz capacity = DEFAULT_CAPACITY)
 {
@@ -72,7 +72,7 @@ fn Buffer Buffer.temp_init(&self, usz capacity = DEFAULT_CAPACITY)
 }
 
 <*
- function call for new object
+	function call for new object
 *>
 fn Buffer new(usz capacity = DEFAULT_CAPACITY, Allocator allocator = allocator::heap())
 {
@@ -80,13 +80,13 @@ fn Buffer new(usz capacity = DEFAULT_CAPACITY, Allocator allocator = allocator::
 }
 
 <*
- function call for new temp object
+	function call for new temp object
 *>
 fn Buffer temp_new(usz capacity = DEFAULT_CAPACITY) => new(capacity, allocator::temp()) @inline;
 
 <*
- will attempt to create a new buffer object and load the contents of filepath.
- if the file does not exits, an empty buffer is created with the filepath and default capacity.
+	will attempt to create a new buffer object and load the contents of filepath.
+	if the file does not exits, an empty buffer is created with the filepath and default capacity.
 *>
 fn Buffer new_file(String filepath, Allocator allocator = allocator::heap())
 {
@@ -97,13 +97,13 @@ fn Buffer new_file(String filepath, Allocator allocator = allocator::heap())
 }
 
 <*
- same as new_file, using the temp allocator
+	same as new_file, using the temp allocator
 *>
 fn Buffer temp_file(String filepath) => new_file (filepath, allocator::temp() ) @inline;
 
 <*
- sets a new internal filepath for this object.
- this is the file created with the save() method.
+	sets a new internal filepath for this object.
+	this is the file created with the save() method.
 *>
 fn void Buffer.set_filepath(&self, String filepath)
 {
@@ -113,10 +113,10 @@ fn void Buffer.set_filepath(&self, String filepath)
 }
 
 <*
- tries to open the file filepath and load it into the buffer.
- filepath is set as the internal filename for the buffer.
- this will replace existing content in the buffer.
- use append_file() to keep the contents of the buffer.
+	tries to open the file filepath and load it into the buffer.
+	filepath is set as the internal filename for the buffer.
+	this will replace existing content in the buffer.
+	use append_file() to keep the contents of the buffer.
 *>
 fn void Buffer.open_file(&self, String filepath)
 {
@@ -131,8 +131,8 @@ fn void Buffer.open_file(&self, String filepath)
 }
 
 <*
- will try to open filepath and append it at the end of the buffer.
- this macro is a wrapper around insert_file method.
+	will try to open filepath and append it at the end of the buffer.
+	this macro is a wrapper around insert_file method.
 *>
 macro void Buffer.append_file(&self, String filepath)
 {
@@ -140,8 +140,8 @@ macro void Buffer.append_file(&self, String filepath)
 }
 
 <*
- tries to insert a file at the given index.
- if tere is no filepath specified for the buffer, sets filepath as the buffer's filepath.
+	tries to insert a file at the given index.
+	if tere is no filepath specified for the buffer, sets filepath as the buffer's filepath.
 *>
 fn void Buffer.insert_file(&self, usz index, String filepath)
 {
@@ -158,7 +158,7 @@ fn void Buffer.insert_file(&self, usz index, String filepath)
 }
 
 <*
- free memory of buffer
+	free memory of buffer
 *>
 fn void Buffer.free(&self)
 {
@@ -170,7 +170,7 @@ fn void Buffer.free(&self)
 }
 
 <*
- private method to reserve addition amount of bytes in the buffer memory.
+	private method to reserve addition amount of bytes in the buffer memory.
 *>
 fn void Buffer.reserve(&self, usz addition) @private
 {
@@ -193,8 +193,8 @@ fn void Buffer.reserve(&self, usz addition) @private
 // TODO: modify data.len here, need to fix every method that calls this
 // so that data.len isn't adjusted twice.
 <*
- private helper metod for creating a len amount of space at index for
- inserting new data.
+	 private helper metod for creating a len amount of space at index for
+	inserting new data.
 *>
 fn void Buffer.adjust_for_insert(&self, usz index, usz len) @private
 {
@@ -207,9 +207,9 @@ fn void Buffer.adjust_for_insert(&self, usz index, usz len) @private
 //+ File saving methods =======================================================
 
 <*
- saves te contents of the buffer to a file using the internal buffer filepath.
- returns error if there is no internal filepath set.
- returns NULL_BUFFER, SAVE_FAILED and NO_FILENAME errors.
+	saves te contents of the buffer to a file using the internal buffer filepath.
+	returns error if there is no internal filepath set.
+	returns NULL_BUFFER, SAVE_FAILED and NO_FILENAME errors.
 *>
 fn void! Buffer.save(&self)
 {
@@ -220,10 +220,10 @@ fn void! Buffer.save(&self)
 }
 
 <*
- saves te contents of the buffer to a file using filepath.
- the internal buffer filepath name is set to filepath.
- returns error if there is no internal filepath set.
- returns NULL_BUFFER, SAVE_FAILED and NO_FILENAM errors.
+	saves te contents of the buffer to a file using filepath.
+	the internal buffer filepath name is set to filepath.
+	returns error if there is no internal filepath set.
+	returns NULL_BUFFER, SAVE_FAILED and NO_FILENAM errors.
 *>
 fn void! Buffer.save_as(&self, String filepath)
 {
@@ -236,8 +236,8 @@ fn void! Buffer.save_as(&self, String filepath)
 //+ Info/View/Maintenence methods =============================================
 
 <*
- private method
- @return `a pointer to the buffer data`
+	private method
+	@return `a pointer to the buffer data`
 *>
 fn BufferData* Buffer.data(self) @inline @private
 {
@@ -245,7 +245,7 @@ fn BufferData* Buffer.data(self) @inline @private
 }
 
 <*
- @return `the capacity of buffer`
+	@return `the capacity of buffer`
 *>
 fn usz Buffer.capacity(self)
 {
@@ -254,7 +254,7 @@ fn usz Buffer.capacity(self)
 }
 
 <*
- @return `the filepath that is set for this buffer`
+	@return `the filepath that is set for this buffer`
 *>
 fn String Buffer.get_filepath(self)
 {
@@ -263,7 +263,7 @@ fn String Buffer.get_filepath(self)
 }
 
 <*
- @return `the length of buffer`
+	@return `the length of buffer`
 *>
 fn usz Buffer.len(&self) @dynamic
 {
@@ -272,7 +272,7 @@ fn usz Buffer.len(&self) @dynamic
 }
 
 <*
- @return `a string slice of buffer contents`
+	@return `a string slice of buffer contents`
 *>
 fn String Buffer.str_view(self)
 {
@@ -282,7 +282,7 @@ fn String Buffer.str_view(self)
 }
 
 <*
- @return `a zstring pointer of buffer contents. buffer is modified with a 0 at the end`
+	@return `a zstring pointer of buffer contents. buffer is modified with a 0 at the end`
 *>
 fn ZString Buffer.zstr_view(&self)
 {
@@ -302,7 +302,7 @@ fn ZString Buffer.zstr_view(&self)
 }
 
 <*
- clears the contents of the buffer, does not reallocate memory.
+	clears the contents of the buffer, does not reallocate memory.
 *>
 fn void Buffer.clear(self)
 {
@@ -311,7 +311,7 @@ fn void Buffer.clear(self)
 }
 
 <*
- @require new_size <= self.len()
+	@require new_size <= self.len()
 *>
 fn void Buffer.chop(self, usz new_size)
 {

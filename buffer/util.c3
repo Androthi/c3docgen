@@ -4,8 +4,8 @@ import std::io;
 //+ Buffer editing ============================================================
 
 <*
- @require start < self.len()
- @require start + len <= self.len()
+	@require start < self.len()
+	@require start + len <= self.len()
 *>
 fn void Buffer.delete(&self, usz start, usz len = 1)
 {
@@ -47,7 +47,9 @@ macro bool char_in_cset(char c, Cset set)
 	return false;
 }
 
-// remove white spaces from start and end  buffer
+<*
+	remove white spaces from start and end  buffer
+*>
 fn void Buffer.trim(&self, Cset set = WHITE_SPACES)
 {
 	if (!*self) return;
@@ -62,18 +64,19 @@ fn void Buffer.trim(&self, Cset set = WHITE_SPACES)
 	if (count < data.len -1) return self.chop(count);
 }
 
-
 <*
- @require start < self.len()
- @require end < self.len()
- @require end >= start "End must be same or equal to the start"
+	@require start < self.len()
+	@require end < self.len()
+	@require end >= start "End must be same or equal to the start"
 *>
 fn void Buffer.delete_range(&self, usz start, usz end)
 {
 	self.delete(start, end - start + 1);
 }
 
-// replaces every instance of char ch with char replacement
+<*
+	replaces every instance of char ch with char replacement
+*>
 fn void Buffer.replace_chars(self, char ch, char replacement)
 {
 	BufferData* data = self.data();
@@ -213,7 +216,7 @@ fn bool Buffer.less(self, Buffer other_buffer)
 }
 
 <*
- @return `true if cursor is at EOF`
+	@return `true if cursor is at EOF`
 *>
 fn bool Buffer.is_eof(self)
 {
