@@ -126,11 +126,9 @@ fn bool! walker(Path p, bool is_dir, void*)
 							break;
 
 						case "module":
-							// the module name
 						case "fn":
-							// fn declaration that does not have docs, but add it anyway.
 						case "macro":
-							// macro declaration that does not have docs, but add it anyway.
+						case "extern":
 							cur_buf.cursor_to_bol();
 							fn_def = cur_buf.get_line();
 
@@ -216,12 +214,27 @@ fn int main(String[] args)
 			monobuf.append ("\n");
 		} else
 		{
-			fix_key = fix_key[7:fix_key.len-7];
-			usz! colon_index = fix_key.rindex_of_char(':');
-			if (try colon_index)
+			
+			// order of these is important
+			fix_key = fix_key[7:fix_key.len-7]; // eat "module"
+			// also possible to have multiple '@' in the module line, strip that too
+			usz! index = fix_key.index_of_char('@');
+			if (try index)
 			{
-				fix_key = fix_key[colon_index+1:fix_key.len-colon_index-1];
+				fix_key = fix_key[:index-1];
+				fix_key = fix_key.trim();
 			}
+			index = fix_key.rindex_of_char(':'); // cut off at last '::' before module name
+			if (try index)
+			{
+				fix_key = fix_key[index+1:fix_key.len-index-1];
+			}
+			index = fix_key.rindex_of_char('('); // snip any possible (<type>) from module name
+			if (try index)
+			{
+				fix_key = fix_key[:index-1];
+			}
+			
 
 			work.clear();
 			work.append (fix_key);
