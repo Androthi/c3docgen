@@ -1,3 +1,4 @@
 *.exe
 build
 docs/*
+c3docgen.code-workspace

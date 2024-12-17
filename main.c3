@@ -39,124 +39,120 @@ fn String Path.extract_dirname(self)
 
 fn bool! walker(Path p, bool is_dir, void*)
 {
-	if (!is_dir)
+	if (is_dir) return false;
+	if (!p.has_extension("c3")) return false;
+	if (verbose) io::printfn("Processing file :%s", p.basename());
+
+	Buffer cur_buf = buffer::temp_file(p.path_string);
+	Buffer cur_module;
+	Buffer sec;
+	String! module_name;
+	usz start_index;
+	usz! end_index;
+	String! word;
+	String! fn_def;
+	bool found_module = false;
+
+	cur_buf.trim();
+	cur_buf.cursor_to_bof();
+
+	while (!cur_buf.is_eof())
 	{
-		if (p.has_extension("c3"))
+		word = cur_buf.get_word();
+		if (catch error = word)
 		{
-			if (verbose) io::printfn("Processing file :%s", p.basename());
-
-			Buffer cur_buf = buffer::temp_file(p.path_string);
-			Buffer cur_module;
-			Buffer sec;
-			String! module_name;
-			usz start_index;
-			usz! end_index;
-			String! word;
-			String! fn_def;
-			bool found_module = false;
-
-			cur_buf.trim();
-			cur_buf.cursor_to_bof();
-
-			while (!cur_buf.is_eof())
+			if (error = BufferError.NO_WORD)
 			{
-				word = cur_buf.get_word();
-				if (catch error = word)
-				{
-					if (error = BufferError.NO_WORD)
-					{
-						cur_buf.cursor_next_line();
-						continue;
-					} else
-					{
-						// something else, just stop processing this and return.
-						io::printfn("Encountered error :%s", error);
+				cur_buf.cursor_next_line();
+				continue;
+			} else
+			{
+				// something else, just stop processing this and return.
+				io::printfn("Encountered error :%s", error);
+				return true;
+			}
+		} else
+		{
+			// we are interested in word that is
+			// <*, module, fn, macro
+			switch (word)
+			{
+				case "<*":
+					start_index = cur_buf.get_cursor();
+					end_index = cur_buf.find_next("*>");
+					if ( catch result = end_index){
+						io::printn("Error: missing '*>'");
 						return true;
 					}
-				} else
-				{
-					// we are interested in word that is
-					// <*, module, fn, macro
-					switch (word)
+					sec.clear();
+					end_index --;
+					cur_buf.sub_buffer(start_index, end_index - start_index, &sec)!;
+					cur_buf.brk(); // advance to the first white space
+					cur_buf.span(); // advance to the first non-white space
+
+					// put the sections in code sections for better formatting in markdown viewers.
+					sec.insert (0, "\n```");
+					sec.append ("\n```");
+					break;
+
+				case "module":
+					cur_buf.cursor_to_bol();
+					module_name = cur_buf.get_line();
+					if (try module_name)
 					{
-						case "<*":
-							start_index = cur_buf.get_cursor();
-							end_index = cur_buf.find_next("*>");
-							if ( catch result = end_index){
-								io::printn("Error: missing '*>'");
-								return true;
-							}
-							sec.clear();
-							end_index --;
-							cur_buf.sub_buffer(start_index, end_index - start_index, &sec)!;
-							cur_buf.brk(); // advance to the first white space
-							cur_buf.span(); // advance to the first non-white space
-
-							// put the sections in code sections for better formatting in markdown viewers.
-							sec.insert (0, "\n```");
-							sec.append ("\n```");
-							break;
-
-						case "module":
-							cur_buf.cursor_to_bol();
-							module_name = cur_buf.get_line();
-							if (try module_name)
+						if (verbose) io::printfn("found def :%s", module_name);
+						if (try module_name.starts_with("module"))
+						{
+							module_name = module_name.strip_end(";");
+							if (!buflist.has_key(module_name))
 							{
-								if (verbose) io::printfn("found def :%s", module_name);
-								if (try module_name.starts_with("module"))
-								{
-									module_name = module_name.strip_end(";");
-									if (!buflist.has_key(module_name))
-									{
-										cur_module = buffer::new();
-										cur_module.appendf ("## %s\n\n", module_name);
-										buflist.set (module_name, cur_module);
-									} else
-									{
-										cur_module = buflist.get(module_name)!;
-									}
-									found_module = true;
-									if (sec.len() > 0)
-									{
-										usz save_cursor = cur_module.get_cursor();
-										cur_module.cursor_to_bof();
-										usz inx = cur_module.cursor_right_lines(2);
-										cur_module.insert(inx, "\n\n");
-										cur_module.insert_buffer(inx, sec);
-										cur_module.cursor_to(save_cursor);
-									}
-								}
+								cur_module = buffer::new();
+								cur_module.appendf ("## %s\n\n", module_name);
+								buflist.set (module_name, cur_module);
+							} else
+							{
+								cur_module = buflist.get(module_name)!;
 							}
-
-						case "fn":
-						case "macro":
-						case "extern":
-							cur_buf.cursor_to_bol();
-							fn_def = cur_buf.get_line();
-
-							if (try fn_def){
-								if (verbose) io::printfn("found def :%s", fn_def);
-								if (!found_module)
-								{
-									io::printn("Error: could not find module definition in file");
-									return true;
-								}
-								cur_module.appendf("### %s\n", fn_def);
-								cur_module.append_buffer(sec);
-								cur_module.append("\n\n");
-								
-								// inserting into cur_module potentially resized it and changed the pointer,
-								// set it into the map again to update the pointer.
-								(void)buflist.set (module_name, cur_module);
+							found_module = true;
+							if (sec.len() > 0)
+							{
+								usz save_cursor = cur_module.get_cursor();
+								cur_module.cursor_to_bof();
+								usz inx = cur_module.cursor_right_lines(2);
+								cur_module.insert(inx, "\n\n");
+								cur_module.insert_buffer(inx, sec);
+								cur_module.cursor_to(save_cursor);
 							}
-
-							break;
-						default:
-							// something else, advance to the next line and continue.
-							cur_buf.cursor_next_line();
-							continue;
+						}
 					}
-				}
+
+				case "fn":
+				case "macro":
+				case "extern":
+					cur_buf.cursor_to_bol();
+					fn_def = cur_buf.get_line();
+
+					if (try fn_def){
+						if (verbose) io::printfn("found def :%s", fn_def);
+						if (!found_module)
+						{
+							io::printn("Error: could not find module definition in file");
+							return true;
+						}
+						cur_module.appendf("### %s\n", fn_def);
+						cur_module.append_buffer(sec);
+						cur_module.append("\n\n");
+						
+						// inserting into cur_module potentially resized it and changed the pointer,
+						// set it into the map again to update the pointer.
+						(void)buflist.set (module_name, cur_module);
+					}
+
+					break;
+				default:
+					// something else, advance to the next line and continue.
+					cur_buf.cursor_next_line();
+					continue;
 			}
 		}
 	}
