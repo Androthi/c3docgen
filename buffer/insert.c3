@@ -227,6 +227,8 @@ fn void Buffer.insert_buffer(&self, usz index, Buffer buffer)
 {
 	if (!buffer) return;
 	BufferData* data = buffer.data();
+	if (!data) return;
+	if (data.len == 0) return;
 	self.insert_chars( index, (String)data.chars[:data.len]);
 }
 

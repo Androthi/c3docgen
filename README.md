@@ -1,10 +1,10 @@
 # c3docgen
 
-using c3c v0.6.5
+compiled with c3c v0.6.6
 
 program to generate documents from c3 source files.
 
-c3docgen [mono] [verbose]
+c3docgen [mono] [verbose] [-h] [--help]
 
  mono will generate a single file with all the modules. this is the only way to
  ensure all contidional modules and modules that have the same name will be scanned for

@@ -4,10 +4,11 @@
 	functions and macros and copy them to an .md file and store it in the
 	/doc folder of the project if one exists, root folder otherwise.
 
-	Options:
-		c3docgen [<opitons>]
-			mono	creates a single file for all the modules encountered.
-			verbose	output information on files and definitions found.
+	Usage:
+		c3docgen [<options>]
+			mono			creates a single file for all the modules encountered.
+			verbose			output information on files and definitions found.
+			-h --help 		print help
 
 *>
 module c3docgen;
@@ -21,6 +22,18 @@ Map(<String, Buffer>) buflist;
 bool mono = false;
 bool verbose = false;
 
+const VERSION = "0.1.1";
+const HELP = 
+`Run this in a c3 project folder to generate documentation.
+c3docgen will search every .c3 file and extract all the modules,
+functions and macros and copy them to an .md file and store it in the
+/doc folder of the project if one exists, root folder otherwise.
+
+Usage:
+	c3docgen [<options>]
+		mono			creates a single file for all the modules encountered.
+		verbose			output information on files and definitions found.
+		-h --help 		print help`;
 
 fn String Path.extract_dirname(self)
 {
@@ -108,10 +121,12 @@ fn bool! walker(Path p, bool is_dir, void*)
 							{
 								cur_module = buffer::new();
 								cur_module.appendf ("## %s\n\n", module_name);
-								buflist.set (module_name, cur_module);
+								//buflist.set (module_name, cur_module);
+								buflist[module_name] = cur_module;
 							} else
 							{
-								cur_module = buflist.get(module_name)!;
+								//cur_module = buflist.get(module_name)!;
+								cur_module = buflist[module_name]!;
 							}
 							found_module = true;
 							if (sec.len() > 0)
@@ -122,6 +137,7 @@ fn bool! walker(Path p, bool is_dir, void*)
 								cur_module.insert(inx, "\n\n");
 								cur_module.insert_buffer(inx, sec);
 								cur_module.cursor_to(save_cursor);
+								sec.clear();
 							}
 						}
 					}
@@ -140,12 +156,17 @@ fn bool! walker(Path p, bool is_dir, void*)
 							return true;
 						}
 						cur_module.appendf("### %s\n", fn_def);
-						cur_module.append_buffer(sec);
+						if (sec.len())
+						{
+							cur_module.append_buffer(sec);
+							sec.clear();
+						}
 						cur_module.append("\n\n");
 						
 						// inserting into cur_module potentially resized it and changed the pointer,
 						// set it into the map again to update the pointer.
 						(void)buflist.set (module_name, cur_module);
+						
 					}
 
 					break;
@@ -169,6 +190,9 @@ fn int main(String[] args)
 				mono = true;
 			case "verbose":
 				verbose = true;
+			case "-h": case "--help":
+				io::printfn("\nc3docgen v.%s\n", VERSION);
+				io::printn(HELP);
 		}
 	}
 
