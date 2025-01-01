@@ -173,6 +173,7 @@ fn bool! walker(Path p, bool is_dir, void*)
 				case "struct":
 				case "enum":
 				case "union":
+				case "fault":
 					if (verbose) io::printfn("found :%s", word);
 					uint nesting = 1;
 					start_index = cur_buf.cursor_to_bol();
