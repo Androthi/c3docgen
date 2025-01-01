@@ -156,6 +156,23 @@ fn void! Buffer.sub_string(&self, usz start_index, usz len, DString* dest)
 }
 
 <*
+	returns a sub string slice of a buffer without allocation
+	@param start_index "index in buffer for start of slice"
+	@param len "length of desired slice"
+	@return! BufferError.NULL_BUFFER, BufferError.OPERATION_FAILED, BufferError.INDEX_OUT_OF_RANGE
+	@return "A string slice of length len starting from start_index"
+*>
+fn String! Buffer.str_slice(&self, usz start_index, usz len)
+{
+	if (!*self) return BufferError.NULL_BUFFER?;
+	if (len == 0) return BufferError.OPERATION_FAILED?;
+	BufferData* data = self.data();
+	if (start_index > data.len) return BufferError.INDEX_OUT_OF_RANGE?;
+	if (len > data.len) len = data.len;
+	return (String)data.chars[start_index:len];
+}
+
+<*
 	like sub_string, but creates a new dstring
 	@param start_index `location to start extraction`
 	@param len `the number of bytes to copy`

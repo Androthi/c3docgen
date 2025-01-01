@@ -22,7 +22,7 @@ Map(<String, Buffer>) buflist;
 bool mono = false;
 bool verbose = false;
 
-const VERSION = "0.1.1";
+const VERSION = "0.1.2";
 const HELP = 
 `Run this in a c3 project folder to generate documentation.
 c3docgen will search every .c3 file and extract all the modules,
@@ -87,7 +87,7 @@ fn bool! walker(Path p, bool is_dir, void*)
 		} else
 		{
 			// we are interested in word that is
-			// <*, module, fn, macro
+			// <*, module, fn, macro, struct, enum or union
 			switch (word)
 			{
 				case "<*":
@@ -168,8 +168,33 @@ fn bool! walker(Path p, bool is_dir, void*)
 						(void)buflist.set (module_name, cur_module);
 						
 					}
-
 					break;
+
+				case "struct":
+				case "enum":
+				case "union":
+					if (verbose) io::printfn("found :%s", word);
+					uint nesting = 1;
+					start_index = cur_buf.cursor_to_bol();
+					cur_buf.find_next("{")!;
+					while (try char c = cur_buf.get_char())
+					{
+						if (c=='{') nesting++;
+						if (c == '}'){
+							nesting--;
+							if (!nesting) break;
+						}
+					}
+					end_index = cur_buf.get_cursor();
+					String cut = cur_buf.str_slice(start_index, end_index-start_index)!;
+					cur_module.appendf( "```\n%s\n", cut);
+					if (sec.len())
+					{
+						cur_module.append_buffer(sec);
+						sec.clear();
+					}
+					cur_module.append("```\n\n");
+
 				default:
 					// something else, advance to the next line and continue.
 					cur_buf.cursor_next_line();
