@@ -30,6 +30,9 @@ fault BufferError
 	EOF,
 }
 
+<*
+	Internal buffer data that keeps track of various important itmes
+*>
 struct BufferData @private
 {
 	Allocator allocator;

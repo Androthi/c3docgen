@@ -191,10 +191,14 @@ fn bool! walker(Path p, bool is_dir, void*)
 					cur_module.appendf( "```\n%s\n", cut);
 					if (sec.len())
 					{
+						sec.delete(0, 4);
 						cur_module.append_buffer(sec);
+						cur_module.append("\n\n");
 						sec.clear();
+					} else
+					{
+						cur_module.append("```\n\n");
 					}
-					cur_module.append("```\n\n");
 
 				default:
 					// something else, advance to the next line and continue.
