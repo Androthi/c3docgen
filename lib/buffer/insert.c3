@@ -30,7 +30,7 @@ macro void Buffer.append(&self, value)
 				$case $defined((String)value):
 					self.insert_chars(self.len(), (String)value);
 				$default:
-					$error "Unsupported type for append – use appendf instead.";
+					$error "Unsupported type for append - use appendf instead.";
 			$endswitch
 	$endswitch
 }
@@ -227,8 +227,6 @@ fn void Buffer.insert_buffer(&self, usz index, Buffer buffer)
 {
 	if (!buffer) return;
 	BufferData* data = buffer.data();
-	if (!data) return;
-	if (data.len == 0) return;
 	self.insert_chars( index, (String)data.chars[:data.len]);
 }
 
