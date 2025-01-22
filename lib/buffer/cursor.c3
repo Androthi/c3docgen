@@ -75,6 +75,9 @@ fn usz Buffer.cursor_right_lines(&self, usz num_lines)
 {
 	if (!*self) return 0;
 	BufferData* data = self.data();
+	if (!num_lines) return data.cursor;
+	// if currently sitting on non-line break, then go to the end of this line first.
+	if (!cset::LINE_BREAK.char_is_in_set (data.chars[data.cursor])) self.cursor_to_eol();
 	while (num_lines)
 	{
 		self.cursor_to_eol();
@@ -148,7 +151,7 @@ fn usz Buffer.span(&self, CSet* set = &cset::WHITE_SPACE)
 	BufferData* data = self.data();
 	while (data.cursor < data.len)
 	{
-		if (set.char_is_in_set (data.chars[data.cursor])) break;
+		if (!set.char_is_in_set (data.chars[data.cursor])) break;
 		data.cursor++;
 	}
 	return data.cursor;
@@ -164,7 +167,7 @@ fn usz Buffer.r_span(&self, CSet* set = &cset::WHITE_SPACE)
 	BufferData* data = self.data();
 	while (data.cursor > 0)
 	{
-		if (set.char_is_in_set (data.chars[data.cursor])) break;
+		if (!set.char_is_in_set (data.chars[data.cursor])) break;
 		data.cursor--;
 	}
 	return data.cursor;
