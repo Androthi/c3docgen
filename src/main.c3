@@ -16,13 +16,14 @@ import buffer;
 import std::io;
 import std::io::path;
 import std::collections::map;
+import lex;
 
 Map(<String, Buffer>) buflist;
 
 bool mono = false;
 bool verbose = false;
 
-const VERSION = "0.1.2";
+const VERSION = "0.1.3";
 const HELP = 
 `Run this in a c3 project folder to generate documentation.
 c3docgen will search every .c3 file and extract all the modules,
@@ -50,6 +51,17 @@ fn String Path.extract_dirname(self)
 	return dir_path;
 }
 
+fn void Lexer.next_line(&self)
+{
+	while (true)
+	{
+		Lexeme l = self.lex()!!;
+		if (l.token == EOF) break;
+		if (l.c == '\n') break;
+	}
+}
+
+
 fn bool! walker(Path p, bool is_dir, void*)
 {
 	if (is_dir) return false;
@@ -68,6 +80,74 @@ fn bool! walker(Path p, bool is_dir, void*)
 
 	cur_buf.trim();
 	cur_buf.cursor_to_bof();
+
+	//+ lex tester
+	Lexer f = Lexer.init(cur_buf.str_view());
+	Lexeme! l;
+	while LOOP: (true)
+	{
+		l = f.lex();
+		if (anyfault e = @catch(l))
+		{
+			io::printfn( "Error Line[%d] :%s", f.line, e);
+			break;
+		}
+
+		Tkn t = l.token!!;
+		switch (t)
+		{
+			case EOF: break LOOP;
+			
+			case ID:
+				Ck token = lex::check_id (Ck, l.slice)!!;
+				if (token != NOT_FOUND)
+				{
+					(void)io::printfn ("Found keyword [%s] %s", token, l.slice);
+				}
+
+			case COMMENT_DOC_OPEN:
+				io::printn ("Found Doc open");
+
+			case COMMENT_DOC_CLOSE:
+				io::printn ("Found Doc close");
+
+			case COMMENT:
+				f.next_line();
+
+			case COMMENT_BLOCK_OPEN:
+				int nest = 1;
+				while (true)
+				{
+					io::printn("in comment block open"); // comment this line, seg fault on linux
+					l = f.lex()!;
+					t = l.token!!;
+
+					if (t == EOF)
+					{
+						io::printfn("Line[%d] Unexpected EOF while parsing block comments", f.line);
+					}
+					else if (t == COMMENT_BLOCK_OPEN)
+					{
+						nest++;
+					}
+					else if (t == COMMENT_BLOCK_CLOSE)
+					{
+						nest--;
+						if (!nest) break;
+					}
+				}
+
+			case AT:
+				Cp token = lex::check_id (Cp, l.slice)!!;
+				if (token != NOT_FOUND)
+				{
+					(void)io::printfn ("Found doc attribute [%s] %s", token, l.slice);
+				}
+
+			default:
+				continue;
+		}
+	}
 
 	while (!cur_buf.is_eof())
 	{

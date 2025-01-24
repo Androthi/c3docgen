@@ -1,0 +1,91 @@
+.module = lex
+.filepath = lex.c3
+.prefix = Ck
+.keywords =
+	fn			module			struct
+	enum		fault			macro
+
+.prefix = Cp
+.keywords =
+	param		return			ensure
+	require		
+
+.newtoken = COMMENT
+.newtoken = COMMENT_BLOCK_OPEN
+.newtoken = COMMENT_BLOCK_CLOSE
+.newtoken = COMMENT_DOC_OPEN
+.newtoken = COMMENT_DOC_CLOSE
+
+.token = SLASH
+			if ((self.caret + 1) != self.data.len)
+			{
+				cur_char = self.data[self.caret + 1];
+				Tkn peek_token = lex_token_table[cur_char];
+				if (peek_token == SLASH)
+				{
+					self.caret += 2;
+					return  Lexeme
+					{
+							.token = COMMENT,
+							.c = cur_char,
+							.slice = self.data[caret:2],
+					};
+				}
+				else if (peek_token == ASTERISK)
+				{
+					self.caret += 2;
+					return  Lexeme
+					{
+							.token = COMMENT_BLOCK_OPEN,
+							.c = cur_char,
+							.slice = self.data[caret:2],
+					};
+				}
+			}
+			nextcase default;
+
+.token = ASTERISK
+			if ((self.caret + 1) != self.data.len)
+			{
+				cur_char = self.data[self.caret + 1];
+				Tkn peek_token = lex_token_table[cur_char];
+				if (peek_token == SLASH)
+				{
+					self.caret += 2;
+					return  Lexeme
+					{
+							.token = COMMENT_BLOCK_CLOSE,
+							.c = cur_char,
+							.slice = self.data[caret:2],
+					};
+				}
+				else if (peek_token == GREATER)
+				{
+					self.caret += 2;
+					return  Lexeme
+					{
+							.token = COMMENT_DOC_CLOSE,
+							.c = cur_char,
+							.slice = self.data[caret:2],
+					};
+				}
+			}
+			nextcase default;
+
+.token = LESS
+			if ((self.caret + 1) != self.data.len)
+			{
+				cur_char = self.data[self.caret + 1];
+				Tkn peek_token = lex_token_table[cur_char];
+				if (peek_token == ASTERISK)
+				{
+					self.caret += 2;
+					return  Lexeme
+					{
+							.token = COMMENT_DOC_OPEN,
+							.c = cur_char,
+							.slice = self.data[caret:2],
+					};
+				}
+			}
+			nextcase default;

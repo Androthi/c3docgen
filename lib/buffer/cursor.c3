@@ -1,6 +1,7 @@
 module buffer;
 import std::io;
 import cset;
+
 <*
 	@return `index of cursor`
 *>
