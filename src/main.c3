@@ -23,7 +23,7 @@ Map(<String, Buffer>) buflist;
 bool mono = false;
 bool verbose = false;
 
-const VERSION = "0.1.3";
+const VERSION = "0.1.5";
 const HELP = 
 `Run this in a c3 project folder to generate documentation.
 c3docgen will search every .c3 file and extract all the modules,
@@ -118,7 +118,6 @@ fn bool! walker(Path p, bool is_dir, void*)
 				int nest = 1;
 				while (true)
 				{
-					io::printn("in comment block open"); // comment this line, seg fault on linux
 					l = f.lex()!;
 					t = l.token!!;
 

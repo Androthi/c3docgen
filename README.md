@@ -1,7 +1,7 @@
 # c3docgen
 
-compiled with c3c 0.6.7 (Pre-release, Jan 21 2025 19:52:00)  
-c3docgen v.0.1.4
+compiled with c3c 0.6.7 (Pre-release, Jan 31 2025 15:31:06)
+c3docgen v.0.1.5
 
 program to generate documents from c3 source files.
 
